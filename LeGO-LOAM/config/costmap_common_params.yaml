@@ -1,0 +1,44 @@
+obstacle_range: 2 #设置机器人检测障碍物的最大距离
+raytrace_range: 3 #设置机器人检测自由空间的最大范围
+#footprint: [[0.575, 0.88], [0.575, -0.88], [-0.575, -0.88], [-0.575, 0.88]]
+#footprint: [[0.175, 0.175], [0.175, -0.175], [-0.175, -0.175], [-0.175, 0.175]]  
+#footprint参数用来设置机器人在二维地图上的占用面积，参数以机器人的中心作为坐标原点
+footprint_inflation: 0.01
+robot_radius: 0.575  #如果机器人外观是圆形的则需要设置该参数，footprint参数就不用设置
+#膨胀半径，扩展在碰撞区域以外的代价区域，使得机器人规划路径避开障碍物
+inflation_radius: 1.3
+
+
+inscribed_inflatation: 0.01
+max_obstacle_height: 1.5  #这两个参数用于描述障碍物的最大高度和最小高度
+min_obstacle_height: -0.2
+obstacle_probability: 0.5 #设置障碍物的默认概率
+lethal_cost: 1000.0 #设置障碍物的默认代价
+cost_scaling_factor: 3 #设置障碍物的默认代价
+
+obstacle_poses_topic: /move_base_simple/goal #设置障碍物信息的发布话题
+obstacle_poses_with_levels_topic: /move_base_simple/goal #设置障碍物信息的发布话题
+obstacle_layer: obstacle_2d_map
+#publish_voxel_map: true
+transform_tolerance: 0.2
+map_type: costmap
+
+obstacle_layer:
+ enabled: true
+ obstacle_range: 3.0
+ raytrace_range: 3.5
+ inflation_radius: 0.2
+ track_unknown_space: false
+ combination_method: 1
+
+ observation_sources: laser_scan_sensor
+ laser_scan_sensor: {data_type: LaserScan, topic: laser_scan, marking: true, clearing: true}
+
+static_layer:
+  enabled: true
+  map_topic: /projected_map #设置静态地图信息的发布话题
+#point_cloud_sensor: {sensor_frame: velodyne, data_type: PointCloud2, topic: /velodyne_points, marking: true, clearing: true}
+#point_cloud_sensor: {sensor_frame: velodyne, data_type: PointCloud2, topic: /velodyne_points, marking: true, clearing: true}
+#observation_sources参数列出了代价地图所需要的所有传感器信息，scan表示传感器参考系的名称
+#data_type为表示激光数据使用消息类型，topic表示传感器发布的话题名称
+#marking和clearing参数用来表示是否需要使用传感器的实时信息来添加或清除代价地图中的障碍物信息

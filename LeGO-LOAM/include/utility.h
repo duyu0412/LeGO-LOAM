@@ -10,7 +10,7 @@
 
 #include "cloud_msgs/cloud_info.h"
 
-#include <opencv/cv.h>
+#include <opencv2/imgproc.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -65,7 +65,7 @@ extern const int Horizon_SCAN = 1800;
 extern const float ang_res_x = 0.2;
 extern const float ang_res_y = 2.0;
 extern const float ang_bottom = 15.0+0.1;
-extern const int groundScanInd = 7;
+extern const int groundScanInd = 12;
 
 // HDL-32E
 // extern const int N_SCAN = 32;
@@ -101,38 +101,43 @@ extern const int groundScanInd = 7;
 // extern const float ang_bottom = 16.6+0.1;
 // extern const int groundScanInd = 15;
 
-extern const bool loopClosureEnableFlag = false;
-extern const double mappingProcessInterval = 0.3;
+extern const bool loopClosureEnableFlag = true; // 是否开启回环检测
+extern const double mappingProcessInterval = 0.3; // 建图间隔
 
-extern const float scanPeriod = 0.1;
-extern const int systemDelay = 0;
-extern const int imuQueLength = 200;
+extern const float scanPeriod = 0.1; // imu频率
+extern const int systemDelay = 0; // 系统延迟
+extern const int imuQueLength = 200; // imu缓存大小
 
-extern const float sensorMinimumRange = 1.0;
-extern const float sensorMountAngle = 0.0;
+extern const float sensorMinimumRange = 1.0; // 过滤掉小于1m的点
+extern const float sensorMountAngle = 0.0; // lidar安装角度
 extern const float segmentTheta = 60.0/180.0*M_PI; // decrese this value may improve accuracy
-extern const int segmentValidPointNum = 5;
-extern const int segmentValidLineNum = 3;
-extern const float segmentAlphaX = ang_res_x / 180.0 * M_PI;
-extern const float segmentAlphaY = ang_res_y / 180.0 * M_PI;
+extern const int segmentValidPointNum = 5; // 点云分割最小点数
+extern const int segmentValidLineNum = 3; // 点云分割最小线数
+extern const float segmentAlphaX = ang_res_x / 180.0 * M_PI; // 水平方向最小分辨率弧度
+extern const float segmentAlphaY = ang_res_y / 180.0 * M_PI; // 垂直方向最小分辨率弧度
 
 
-extern const int edgeFeatureNum = 2;
-extern const int surfFeatureNum = 4;
+extern const int edgeFeatureNum = 2; // 边缘特征数量
+extern const int surfFeatureNum = 4; // 平面特征数量
 extern const int sectionsTotal = 6;
-extern const float edgeThreshold = 0.1;
-extern const float surfThreshold = 0.1;
-extern const float nearestFeatureSearchSqDist = 25;
+extern const float edgeThreshold = 0.1; // 边缘阈值
+extern const float surfThreshold = 0.1; // 平面阈值
+extern const float nearestFeatureSearchSqDist = 25; // 最近特征搜索距离
 
 
 // Mapping Params
+// 点云地图搜索半径
 extern const float surroundingKeyframeSearchRadius = 50.0; // key frame that is within n meters from current pose will be considerd for scan-to-map optimization (when loop closure disabled)
-extern const int   surroundingKeyframeSearchNum = 50; // submap size (when loop closure enabled)
+// 点云地图搜索大小
+extern const int   surroundingKeyframeSearchNum = 100; // submap size (when loop closure enabled)
 // history key frames (history submap for loop closure)
-extern const float historyKeyframeSearchRadius = 7.0; // key frame that is within n meters from current pose will be considerd for loop closure
-extern const int   historyKeyframeSearchNum = 25; // 2n+1 number of hostory key frames will be fused into a submap for loop closure
+// 历史关键帧搜索半径
+extern const float historyKeyframeSearchRadius = 50.0; // key frame that is within n meters from current pose will be considerd for loop closure
+// 历史关键帧搜索大小
+extern const int   historyKeyframeSearchNum = 100; // 2n+1 number of hostory key frames will be fused into a submap for loop closure
+// 历史关键帧匹配分数
 extern const float historyKeyframeFitnessScore = 0.3; // the smaller the better alignment
-
+// 可视化点云范围
 extern const float globalMapVisualizationSearchRadius = 500.0; // key frames with in n meters will be visualized
 
 

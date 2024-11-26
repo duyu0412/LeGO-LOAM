@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(lego_loam)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+set(CMAKE_CXX_FLAGS "-std=c++14")
+
 
 find_package(catkin REQUIRED COMPONENTS
   tf
@@ -23,7 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(GTSAM REQUIRED QUIET)
 find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
-
+find_package(octomap REQUIRED)
+find_package(octomap_msgs REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS cloud_msgs
@@ -36,6 +38,7 @@ include_directories(
 	${PCL_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
 	${GTSAM_INCLUDE_DIR}
+  ${OCTOMAP_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -54,7 +57,13 @@ add_dependencies(featureAssociation ${catkin_EXPORTED_TARGETS} cloud_msgs_gencpp
 target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_executable(mapOptmization src/mapOptmization.cpp)
-target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam)
+target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam ${OCTOMAP_LIBRARIES})
 
 add_executable(transformFusion src/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(base_link_to_odom src/base_link_to_odom.cpp)
+target_link_libraries(base_link_to_odom ${catkin_LIBRARIES})
+
+add_executable(occupancy_grid_mapping src/occupancy_grid_mapping.cpp)
+target_link_libraries(occupancy_grid_mapping ${catkin_LIBRARIES})

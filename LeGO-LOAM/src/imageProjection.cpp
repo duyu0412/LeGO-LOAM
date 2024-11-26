@@ -33,7 +33,7 @@
 //      IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). October 2018.
 
 #include "utility.h"
-
+#include <sensor_msgs/LaserScan.h>
 class ImageProjection{
 private:
 
@@ -49,7 +49,9 @@ private:
     ros::Publisher pubSegmentedCloudPure;
     ros::Publisher pubSegmentedCloudInfo;
     ros::Publisher pubOutlierCloud;
-
+    ros::Publisher pubCloudWithoutGround; // 发布去除地面的点云
+    ros::Publisher pubCloudWithoutGroundall;
+    ros::Publisher pubLaserScan;
     pcl::PointCloud<PointType>::Ptr laserCloudIn;
     pcl::PointCloud<PointXYZIR>::Ptr laserCloudInRing;
 
@@ -60,9 +62,10 @@ private:
     pcl::PointCloud<PointType>::Ptr segmentedCloud;
     pcl::PointCloud<PointType>::Ptr segmentedCloudPure;
     pcl::PointCloud<PointType>::Ptr outlierCloud;
-
+    pcl::PointCloud<PointType>::Ptr cloudWithoutGround; // 去除地面的点云
+    pcl::PointCloud<PointType>::Ptr cloudWithoutGroundall; // 去除地面的点云
     PointType nanPoint; // fill in fullCloud at each iteration
-
+    sensor_msgs::LaserScan laserScanMsg;
     cv::Mat rangeMat; // range matrix for range image
     cv::Mat labelMat; // label matrix for segmentaiton marking
     cv::Mat groundMat; // ground matrix for ground cloud marking
@@ -96,7 +99,9 @@ public:
         pubSegmentedCloudPure = nh.advertise<sensor_msgs::PointCloud2> ("/segmented_cloud_pure", 1);
         pubSegmentedCloudInfo = nh.advertise<cloud_msgs::cloud_info> ("/segmented_cloud_info", 1);
         pubOutlierCloud = nh.advertise<sensor_msgs::PointCloud2> ("/outlier_cloud", 1);
-
+        pubCloudWithoutGround = nh.advertise<sensor_msgs::PointCloud2> ("/cloud_without_ground", 1); // 发布去除地面的点云
+        pubLaserScan = nh.advertise<sensor_msgs::LaserScan>("/laser_scan", 1);
+        pubCloudWithoutGroundall = nh.advertise<sensor_msgs::PointCloud2> ("/cloud_without_ground_all", 1);
         nanPoint.x = std::numeric_limits<float>::quiet_NaN();
         nanPoint.y = std::numeric_limits<float>::quiet_NaN();
         nanPoint.z = std::numeric_limits<float>::quiet_NaN();
@@ -118,7 +123,9 @@ public:
         segmentedCloud.reset(new pcl::PointCloud<PointType>());
         segmentedCloudPure.reset(new pcl::PointCloud<PointType>());
         outlierCloud.reset(new pcl::PointCloud<PointType>());
-
+        cloudWithoutGround.reset(new pcl::PointCloud<PointType>()); // 去除地面的点云
+        cloudWithoutGroundall.reset(new pcl::PointCloud<PointType>()); // 去除地面的点云
+        laserScanMsg.ranges.assign(Horizon_SCAN, 0);
         fullCloud->points.resize(N_SCAN*Horizon_SCAN);
         fullInfoCloud->points.resize(N_SCAN*Horizon_SCAN);
 
@@ -148,7 +155,8 @@ public:
         segmentedCloud->clear();
         segmentedCloudPure->clear();
         outlierCloud->clear();
-
+        cloudWithoutGround->clear(); // 去除地面的点云
+        cloudWithoutGroundall->clear(); // 去除地面的点云
         rangeMat = cv::Mat(N_SCAN, Horizon_SCAN, CV_32F, cv::Scalar::all(FLT_MAX));
         groundMat = cv::Mat(N_SCAN, Horizon_SCAN, CV_8S, cv::Scalar::all(0));
         labelMat = cv::Mat(N_SCAN, Horizon_SCAN, CV_32S, cv::Scalar::all(0));
@@ -307,8 +315,76 @@ public:
                 }
             }
         }
-    }
+        // 发布去除地面的点云
+        // if (pubCloudWithoutGround.getNumSubscribers() != 0){
+        //     for (size_t i = 0; i <= groundScanInd; ++i){
+        //         float min_range = 1000;
+        //         size_t id_min = 0;
+        //         for (size_t j = 0; j < Horizon_SCAN; ++j){
+        //             size_t Ind = j + i*Horizon_SCAN;
+        //             float z = fullCloud->points[Ind].z;
+        //             if (rangeMat.at<float>(i,j) != FLT_MAX && groundMat.at<int8_t>(i,j) != 1 && z > 0.4 && z < 1.2)
+        //                 if (rangeMat.at<float>(i,j) < min_range){
+        //                     min_range = rangeMat.at<float>(i,j);
+        //                     id_min = Ind;
+        //                 }
+        //                 // cloudWithoutGround->push_back(fullCloud->points[j + i*Horizon_SCAN]);
+        //         }
+        //         if (min_range < 1000){
+        //             cloudWithoutGround->push_back(fullCloud->points[id_min]);
+        //         }
+        //     }
+        // }
 
+        if (pubCloudWithoutGround.getNumSubscribers() != 0 || pubLaserScan.getNumSubscribers() != 0) {
+            for (size_t j = 0; j < Horizon_SCAN; ++j) {
+                float min_range = 1000;
+                size_t id_min = 0;
+                for (size_t i = 0; i < groundScanInd; ++i) { 
+                    size_t Ind = j + i * Horizon_SCAN;
+                    float z = fullCloud->points[Ind].z;
+                // 检查是否满足基本条件
+                    if (rangeMat.at<float>(i,j) != FLT_MAX && 
+                        groundMat.at<int8_t>(i,j) != 1 && 
+                        z > 0.4 && z < 1.2) 
+                    {
+                        // 更新最近点
+                        if (rangeMat.at<float>(i,j) < min_range) {
+                            min_range = rangeMat.at<float>(i,j);
+                            id_min = Ind;
+                        }
+                    }
+                }
+                // 保留当前扫描线的最近点
+                if (min_range < 1000) {
+                    laserScanMsg.ranges[j] = min_range;
+                    //laserScanMsg.intensities[j] = fullCloud->points[id_min].intensity;
+                    pcl::PointXYZI point = fullCloud->points[id_min];
+                    //point.z = 0;
+                    float temp_x = point.x;
+                    point.x = point.y;  // y -> x
+                    point.y = 0;  // z -> y
+                    point.z = temp_x;   // x -> z
+                    cloudWithoutGround->push_back(point);
+                }
+            }
+        }
+        if (pubCloudWithoutGroundall.getNumSubscribers() != 0){
+            for (size_t i = 0; i < N_SCAN; ++i){
+                for (size_t j = 0; j < Horizon_SCAN; ++j){
+                    if (rangeMat.at<float>(i,j) != FLT_MAX && groundMat.at<int8_t>(i,j) != 1 && fullCloud->points[j + i*Horizon_SCAN].z > 0.4){
+                        pcl::PointXYZI point = fullCloud->points[j + i * Horizon_SCAN];
+                        float temp_x = point.x;
+                        point.x = point.y;  // y -> x
+                        point.y = point.z;  // z -> y
+                        point.z = temp_x;   // x -> z
+                        cloudWithoutGroundall->push_back(point);
+                    }
+                }
+            }
+        }
+
+    }
     void cloudSegmentation(){
         // segmentation process
         for (size_t i = 0; i < N_SCAN; ++i)
@@ -503,6 +579,28 @@ public:
             laserCloudTemp.header.stamp = cloudHeader.stamp;
             laserCloudTemp.header.frame_id = "base_link";
             pubFullInfoCloud.publish(laserCloudTemp);
+        }
+        if (pubCloudWithoutGround.getNumSubscribers() != 0){
+            pcl::toROSMsg(*cloudWithoutGround, laserCloudTemp);
+            laserCloudTemp.header.stamp = cloudHeader.stamp;
+            laserCloudTemp.header.frame_id = "camera";
+            pubCloudWithoutGround.publish(laserCloudTemp);
+        }
+        if (pubLaserScan.getNumSubscribers() != 0) {
+            laserScanMsg.header.stamp = cloudHeader.stamp;
+            laserScanMsg.header.frame_id = "base_link";
+            laserScanMsg.angle_min = -M_PI;
+            laserScanMsg.angle_max = M_PI;
+            laserScanMsg.angle_increment = 2 * M_PI / Horizon_SCAN;
+            laserScanMsg.range_min = 0.1;
+            laserScanMsg.range_max = 1000.0;
+            pubLaserScan.publish(laserScanMsg);
+        }
+        if (pubCloudWithoutGroundall.getNumSubscribers() != 0){
+            pcl::toROSMsg(*cloudWithoutGroundall, laserCloudTemp);
+            laserCloudTemp.header.stamp = cloudHeader.stamp;
+            laserCloudTemp.header.frame_id = "camera";
+            pubCloudWithoutGroundall.publish(laserCloudTemp);
         }
     }
 };

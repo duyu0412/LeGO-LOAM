@@ -1,0 +1,17 @@
+global_costmap:
+   global_frame: map #用来表示全局代价地图需要在哪个参考系下运行
+   robot_base_frame: base_link #用来表示代价地图可以参考的机器人本体的坐标系
+   update_frequency: 5.0 #用来决定全局地图信息更新的频率
+   publish_frequency: 3.0 #用于设置代价地图发布可视化信息的频率，单位是 Hz
+   static_map: true #用来决定代价地图是否需要根据map_server提供的地图信息进行初始化
+   #如果不需要使用已有的地图或者map_server最好将该参数设置为false
+   
+   rolling_window: false #用来设置在机器人移动过程中是否需要滚动窗口，以保持机器人处于中心位置
+   resolution: 0.05
+   transform_tolerance: 0.5 #坐标系间的转换可以忍受的最大延时
+   map_type: costmap
+
+   plugins:
+      - {name: static_layer, type: "costmap_2d::StaticLayer"}
+      - {name: obstacle_layer,  type: "costmap_2d::ObstacleLayer"}
+      - {name: inflation_layer, type: "costmap_2d::InflationLayer"}

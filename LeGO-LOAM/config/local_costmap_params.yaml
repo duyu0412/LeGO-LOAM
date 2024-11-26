@@ -1,0 +1,19 @@
+local_costmap:
+   global_frame: map #用来表示全局代价地图需要在哪个参考系下运行
+   robot_base_frame: base_link #用来表示代价地图可以参考的机器人本体的坐标系
+   update_frequency: 5.0 #用来决定局部代价地图信息更新的频率
+   publish_frequency: 5.0 #用于设置局部代价地图发布可视化信息的频率，单位是 Hz
+   static_map: false #局部代价地图一般不设置为静态地图，因为需要检测是否在机器人附近有新增的动态障碍物
+   rolling_window: true #用来设置在机器人移动过程中是否需要滚动窗口，以保持机器人处于中心位置
+   width: 3 # 1.5
+   height: 3 # 1.5
+   resolution: 0.05
+   inflation_radius: 0.1
+   cost_scaling_factor: 2
+   #width、height、resolution用于设置代价地图的长（米）、高（米）和分辨率（米／格）。虽然分辨率设置的与静态地图的不同
+   #但是一般情况下两者是相同
+   transform_tolerance: 0.5 #局部代价地图中的坐标系之间转换的最大可忍受延时
+   plugins:
+      - {name: obstacle_layer,  type: "costmap_2d::ObstacleLayer"}
+      - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+ 

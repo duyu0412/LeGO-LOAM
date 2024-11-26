@@ -1,0 +1,28 @@
+<launch>
+  <node pkg = "rviz" type = "rviz" name = "move_base_rviz" respawn = "false" output = "screen" args = "-d $(find lego_loam)/config/movebase.rviz"/>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+    
+    <remap from="/odom" to="/odom"/>
+    <!--加载A star、Dijkstra算法-->
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <param name="planner_frequency" value="1.0" />
+    <param name="planner_patience" value="5.0" />
+    
+    <!-- 通用配置文件（全局） -->
+    <rosparam file="$(find lego_loam)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    
+    <!-- 通用配置文件（本地） -->
+	  <rosparam file="$(find lego_loam)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    
+    <!-- 本地代价地图参数 -->
+    <rosparam file="$(find lego_loam)/config/local_costmap_params.yaml" command="load" />
+    
+    <!-- 全局代价地图参数 -->
+    <rosparam file="$(find lego_loam)/config/global_costmap_params.yaml" command="load" />
+    
+    <!-- 本地规划器 -->
+    <rosparam file="$(find lego_loam)/config/base_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find lego_loam)/config/global_planner_params.yaml" command="load" />
+  </node>
+  
+</launch>
